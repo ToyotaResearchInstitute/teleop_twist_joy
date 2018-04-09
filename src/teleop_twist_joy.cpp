@@ -102,7 +102,7 @@ TeleopTwistJoy::TeleopTwistJoy(rclcpp::Node::SharedPtr & node)
   // }
   // else
   {
-    pimpl_->axis_linear_map["x"] = 5;
+    pimpl_->axis_linear_map["x"] = 1;
     node->get_parameter("axis_linear", pimpl_->axis_linear_map["x"]);
     pimpl_->scale_linear_map["x"] = 0.5;
     node->get_parameter("scale_linear", pimpl_->scale_linear_map["x"]);
