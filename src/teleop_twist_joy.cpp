@@ -89,7 +89,7 @@ TeleopTwistJoy::TeleopTwistJoy(rclcpp::Node::SharedPtr & node)
   pimpl_->enable_button = 5;
   node->get_parameter("enable_button", pimpl_->enable_button);
 
-  pimpl_->enable_turbo_button = -1;
+  pimpl_->enable_turbo_button = 4;
   node->get_parameter("enable_turbo_button", pimpl_->enable_turbo_button);
 
   // TODO(clalancette): node->get_parameter(s) doesn't seem to
