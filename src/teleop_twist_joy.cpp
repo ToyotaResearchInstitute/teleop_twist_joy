@@ -106,28 +106,24 @@ TeleopTwistJoy::TeleopTwistJoy() : Node("teleop_twist_joy_node")
     {
       rcl_interfaces::msg::SetParametersResult result;
       result.successful = true;
-      result.reason = "Success";
+      result.reason = "";
       for (const auto& param : parameters) {
         try {
           std::string name = param.get_name();
-          auto int_it = std::find_if(int_parameters.begin(), int_parameters.end(), [&name](const JoyParameter<int>& j) -> bool { return name == j.name; });
+          auto int_it = std::find_if(int_parameters.begin(), int_parameters.end(),
+                                     [&name](const JoyParameter<int>& j) -> bool {
+                                       return name == j.name;
+                                     });
           if (int_it != int_parameters.end()) {
-            // This was one of the required parameters, so ensure it isn't
-            // being deleted
-            if (param.get_type() == rclcpp::ParameterType::PARAMETER_NOT_SET) {
-              throw std::runtime_error("Cannot delete required parameter");
-            }
             int_it->variable = param.as_int();
           } else {
-            auto double_it = std::find_if(double_parameters.begin(), double_parameters.end(), [&name](const JoyParameter<double>& j) -> bool { return name == j.name; });
+            auto double_it = std::find_if(double_parameters.begin(), double_parameters.end(),
+                                          [&name](const JoyParameter<double>& j) -> bool {
+                                            return name == j.name;
+                                          });
             if (double_it != double_parameters.end()) {
-              // This was one of the required parameters, so ensure it isn't
-              // being deleted
-              if (param.get_type() == rclcpp::ParameterType::PARAMETER_NOT_SET) {
-                throw std::runtime_error("Cannot delete required parameter");
-              }
+              double_it->variable = param.as_double();
             }
-            double_it->variable = param.as_double();
           }
         } catch (const std::runtime_error& err) {
           result.successful = false;
