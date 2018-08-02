@@ -75,8 +75,17 @@ TeleopTwistJoy::TeleopTwistJoy() : Node("teleop_twist_joy_node")
     std::bind(&TeleopTwistJoy::Impl::joyCallback, this->pimpl_, std::placeholders::_1),
     rmw_qos_profile_sensor_data);
 
-  this->get_parameter_or("enable_button", pimpl_->enable_button, 5);
-  this->get_parameter_or("enable_turbo_button", pimpl_->enable_turbo_button, -1);
+  this->set_parameter_if_not_set("enable_button", 5);
+  this->set_parameter_if_not_set("enable_turbo_button", -1);
+  this->set_parameter_if_not_set("axis_linear_x", 5);
+  this->set_parameter_if_not_set("scale_linear_x", 0.5);
+  this->set_parameter_if_not_set("scale_linear_turbo_x", 1.0);
+  this->set_parameter_if_not_set("axis_angular_yaw", 2);
+  this->set_parameter_if_not_set("scale_angular_yaw", 0.5);
+  this->set_parameter_if_not_set("scale_angular_turbo_yaw", 0.5);
+
+  this->get_parameter("enable_button", pimpl_->enable_button);
+  this->get_parameter("enable_turbo_button", pimpl_->enable_turbo_button);
 
   // TODO(clalancette): node->get_parameter(s) doesn't seem to
   // support getting a map of values yet.  Revisit this once it does.
@@ -88,9 +97,9 @@ TeleopTwistJoy::TeleopTwistJoy() : Node("teleop_twist_joy_node")
   // }
   // else
   {
-    this->get_parameter_or("axis_linear", pimpl_->axis_linear_map["x"], 5);
-    this->get_parameter_or("scale_linear", pimpl_->scale_linear_map["x"], 0.5);
-    this->get_parameter_or("scale_linear_turbo", pimpl_->scale_linear_turbo_map["x"], 1.0);
+    this->get_parameter("axis_linear_x", pimpl_->axis_linear_map["x"]);
+    this->get_parameter("scale_linear_x", pimpl_->scale_linear_map["x"]);
+    this->get_parameter("scale_linear_turbo_x", pimpl_->scale_linear_turbo_map["x"]);
   }
 
   // TODO(clalancette): node->get_parameter(s) doesn't seem to
@@ -103,9 +112,9 @@ TeleopTwistJoy::TeleopTwistJoy() : Node("teleop_twist_joy_node")
   // }
   // else
   {
-    this->get_parameter_or("axis_angular", pimpl_->axis_angular_map["yaw"], 2);
-    this->get_parameter_or("scale_angular", pimpl_->scale_angular_map["yaw"], 0.5);
-    this->get_parameter_or("scale_angular_turbo", pimpl_->scale_angular_turbo_map["yaw"], 0.5);
+    this->get_parameter("axis_angular_yaw", pimpl_->axis_angular_map["yaw"]);
+    this->get_parameter("scale_angular_yaw", pimpl_->scale_angular_map["yaw"]);
+    this->get_parameter("scale_angular_turbo_yaw", pimpl_->scale_angular_turbo_map["yaw"]);
   }
 
   ROS_INFO_NAMED("TeleopTwistJoy", "Teleop enable button %i.", pimpl_->enable_button);
