@@ -27,8 +27,12 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 #include <sensor_msgs/msg/joy.hpp>
 #include "teleop_twist_joy/teleop_twist_joy.h"
 
+#include <functional>
 #include <map>
+#include <memory>
+#include <stdexcept>
 #include <string>
+#include <vector>
 
 #define ROS_INFO_NAMED RCUTILS_LOG_INFO_NAMED
 #define ROS_INFO_COND_NAMED RCUTILS_LOG_INFO_EXPRESSION_NAMED
@@ -75,47 +79,65 @@ TeleopTwistJoy::TeleopTwistJoy() : Node("teleop_twist_joy_node")
     std::bind(&TeleopTwistJoy::Impl::joyCallback, this->pimpl_, std::placeholders::_1),
     rmw_qos_profile_sensor_data);
 
-  this->set_parameter_if_not_set("enable_button", 5);
-  this->set_parameter_if_not_set("enable_turbo_button", -1);
-  this->set_parameter_if_not_set("axis_linear_x", 5);
-  this->set_parameter_if_not_set("scale_linear_x", 0.5);
-  this->set_parameter_if_not_set("scale_linear_turbo_x", 1.0);
-  this->set_parameter_if_not_set("axis_angular_yaw", 2);
-  this->set_parameter_if_not_set("scale_angular_yaw", 0.5);
-  this->set_parameter_if_not_set("scale_angular_turbo_yaw", 0.5);
+  // TODO(clalancette): node->get_parameter(s) doesn't support getting a map of
+  // values yet.  Revisit this once it does.
+  int_parameters.push_back({"enable_button", 5, pimpl_->enable_button});
+  int_parameters.push_back({"enable_turbo_button", -1, pimpl_->enable_turbo_button});
+  int_parameters.push_back({"axis_linear_x", 5, pimpl_->axis_linear_map["x"]});
+  int_parameters.push_back({"axis_angular_yaw", 2, pimpl_->axis_angular_map["yaw"]});
 
-  this->get_parameter("enable_button", pimpl_->enable_button);
-  this->get_parameter("enable_turbo_button", pimpl_->enable_turbo_button);
+  double_parameters.push_back({"scale_linear_x", 0.5, pimpl_->scale_linear_map["x"]});
+  double_parameters.push_back({"scale_linear_turbo_x", 1.0, pimpl_->scale_linear_turbo_map["x"]});
+  double_parameters.push_back({"scale_angular_yaw", 0.5, pimpl_->scale_angular_map["yaw"]});
+  double_parameters.push_back({"scale_angular_turbo_yaw", 0.5, pimpl_->scale_angular_turbo_map["yaw"]});
 
-  // TODO(clalancette): node->get_parameter(s) doesn't seem to
-  // support getting a map of values yet.  Revisit this once it does.
-  // if (nh_param->getParam("axis_linear", pimpl_->axis_linear_map))
-  // {
-  //   nh_param->getParam("axis_linear", pimpl_->axis_linear_map);
-  //   nh_param->getParam("scale_linear", pimpl_->scale_linear_map);
-  //   nh_param->getParam("scale_linear_turbo", pimpl_->scale_linear_turbo_map);
-  // }
-  // else
-  {
-    this->get_parameter("axis_linear_x", pimpl_->axis_linear_map["x"]);
-    this->get_parameter("scale_linear_x", pimpl_->scale_linear_map["x"]);
-    this->get_parameter("scale_linear_turbo_x", pimpl_->scale_linear_turbo_map["x"]);
+  for(const auto& p : int_parameters) {
+    this->set_parameter_if_not_set(p.name, p.default_value);
+    this->get_parameter(p.name, p.variable);
   }
 
-  // TODO(clalancette): node->get_parameter(s) doesn't seem to
-  // support getting a map of values yet.  Revisit this once it does.
-  // if (nh_param->getParam("axis_angular", pimpl_->axis_angular_map))
-  // {
-  //   nh_param->getParam("axis_angular", pimpl_->axis_angular_map);
-  //   nh_param->getParam("scale_angular", pimpl_->scale_angular_map);
-  //   nh_param->getParam("scale_angular_turbo", pimpl_->scale_angular_turbo_map);
-  // }
-  // else
-  {
-    this->get_parameter("axis_angular_yaw", pimpl_->axis_angular_map["yaw"]);
-    this->get_parameter("scale_angular_yaw", pimpl_->scale_angular_map["yaw"]);
-    this->get_parameter("scale_angular_turbo_yaw", pimpl_->scale_angular_turbo_map["yaw"]);
+  for(const auto& p : double_parameters) {
+    this->set_parameter_if_not_set(p.name, p.default_value);
+    this->get_parameter(p.name, p.variable);
   }
+
+  auto param_change_callback =
+    [this](std::vector<rclcpp::Parameter> parameters) -> rcl_interfaces::msg::SetParametersResult
+    {
+      rcl_interfaces::msg::SetParametersResult result;
+      result.successful = true;
+      result.reason = "Success";
+      for (const auto& param : parameters) {
+        try {
+          std::string name = param.get_name();
+          auto int_it = std::find_if(int_parameters.begin(), int_parameters.end(), [&name](const JoyParameter<int>& j) -> bool { return name == j.name; });
+          if (int_it != int_parameters.end()) {
+            // This was one of the required parameters, so ensure it isn't
+            // being deleted
+            if (param.get_type() == rclcpp::ParameterType::PARAMETER_NOT_SET) {
+              throw std::runtime_error("Cannot delete required parameter");
+            }
+            int_it->variable = param.as_int();
+          } else {
+            auto double_it = std::find_if(double_parameters.begin(), double_parameters.end(), [&name](const JoyParameter<double>& j) -> bool { return name == j.name; });
+            if (double_it != double_parameters.end()) {
+              // This was one of the required parameters, so ensure it isn't
+              // being deleted
+              if (param.get_type() == rclcpp::ParameterType::PARAMETER_NOT_SET) {
+                throw std::runtime_error("Cannot delete required parameter");
+              }
+            }
+            double_it->variable = param.as_double();
+          }
+        } catch (const std::runtime_error& err) {
+          result.successful = false;
+          result.reason = err.what();
+          break;
+        }
+      }
+      return result;
+    };
+  this->register_param_change_callback(param_change_callback);
 
   ROS_INFO_NAMED("TeleopTwistJoy", "Teleop enable button %i.", pimpl_->enable_button);
   ROS_INFO_COND_NAMED(pimpl_->enable_turbo_button >= 0, "TeleopTwistJoy",

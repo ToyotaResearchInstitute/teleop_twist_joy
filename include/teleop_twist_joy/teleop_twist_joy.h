@@ -25,6 +25,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 #ifndef TELEOP_TWIST_JOY_TELEOP_TWIST_JOY_H
 #define TELEOP_TWIST_JOY_TELEOP_TWIST_JOY_H
 
+#include <string>
+
 #include <rclcpp/rclcpp.hpp>
 
 namespace teleop_twist_joy
@@ -43,6 +45,16 @@ public:
 private:
   struct Impl;
   Impl* pimpl_;
+
+  template <typename T>
+  struct JoyParameter {
+    std::string name;
+    T default_value;
+    T& variable;
+  };
+
+  std::vector<JoyParameter<int>> int_parameters;
+  std::vector<JoyParameter<double>> double_parameters;
 };
 
 }  // namespace teleop_twist_joy
