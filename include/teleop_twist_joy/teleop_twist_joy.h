@@ -26,6 +26,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 #define TELEOP_TWIST_JOY_TELEOP_TWIST_JOY_H
 
 #include <string>
+#include <vector>
 
 #include <rclcpp/rclcpp.hpp>
 
