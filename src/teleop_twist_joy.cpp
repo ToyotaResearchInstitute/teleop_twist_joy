@@ -102,7 +102,7 @@ TeleopTwistJoy::TeleopTwistJoy() : Node("teleop_twist_joy_node")
     rmw_qos_profile_default);
   pimpl_->joy_sub = this->create_subscription<sensor_msgs::msg::Joy>("joy",
     std::bind(&TeleopTwistJoy::Impl::joyCallback, this->pimpl_, std::placeholders::_1),
-    rmw_qos_profile_sensor_data);
+    rmw_qos_profile_default);
 
   // TODO(clalancette): node->get_parameter(s) doesn't support getting a map of
   // values yet.  https://github.com/ros2/rclcpp/issues/529
